@@ -24,7 +24,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [active, setActive] = useState<RecoveryCase | null>(null);
-  const top = cases[0];
+  const top = cases[0] ?? null;
 
   return (
     <div className="flex min-h-screen w-full bg-background">
