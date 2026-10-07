@@ -23,15 +23,16 @@ export function CaseRow({ c, rank, onOpen }: { c: RecoveryCase; rank: number; on
   return (
     <button
       onClick={onOpen}
-      className="group grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-muted sm:px-6"
+      className={"group relative grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none sm:gap-4 sm:px-6 " + (rank === 1 ? "before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-primary" : "")}
     >
-      <span className="grid h-8 w-8 place-items-center rounded-full border border-border text-xs font-bold text-muted-foreground">
+      <span className={"grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold " + (rank === 1 ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground")}>
         {rank}
       </span>
       <div className="min-w-0">
         <div className="flex flex-wrap items-baseline gap-x-2">
           <span className="font-semibold text-foreground">{c.customer}</span>
           <span className="font-semibold text-foreground">{formatINR(c.amount)}</span>
+          {rank === 1 && <span className="text-[10px] font-bold uppercase tracking-wider text-primary">Top pick</span>}
         </div>
         <div className="mt-0.5 text-xs text-muted-foreground">
           {c.reference} · {c.status}
@@ -43,12 +44,12 @@ export function CaseRow({ c, rank, onOpen }: { c: RecoveryCase; rank: number; on
         </div>
         <p className="mt-2 text-sm text-muted-foreground">{c.reason}</p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <div className="text-right">
-          <div className={`text-xl font-bold ${scoreColor(c.recoverability)}`}>{c.recoverability}%</div>
+          <div className={`text-lg font-bold sm:text-xl ${scoreColor(c.recoverability)}`}>{c.recoverability}%</div>
           <div className="text-[11px] text-muted-foreground">recoverable</div>
         </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+        <ChevronRight className="hidden h-4 w-4 sm:block text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       </div>
     </button>
   );
