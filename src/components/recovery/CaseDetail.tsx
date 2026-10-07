@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { toast } from "sonner";
-import { Check, X, Sparkles, MessageCircle, MessageSquare, UserRound, ShieldCheck, Activity, UserCheck } from "lucide-react";
+import {
+  Check, X, Sparkles, MessageCircle, MessageSquare, UserRound, ShieldCheck, Activity,
+  UserCheck, Lock, Pencil, Loader2, ScrollText, BrainCircuit,
+} from "lucide-react";
 import type { Channel, RecoveryCase, Timing } from "@/lib/recovery/types";
 import { formatINR } from "@/lib/recovery/mock-data";
 import { scoreColor } from "./CaseRow";
@@ -18,6 +21,33 @@ const timings: { id: Timing; label: string; sub: string }[] = [
   { id: "tomorrow", label: "Tomorrow", sub: "Lower urgency" },
 ];
 
+function Step({ n, label, tag, tone = "ai" }: { n: number; label: string; tag?: string; tone?: "ai" | "you" }) {
+  return (
+    <div className="mb-3 flex items-center gap-2.5">
+      <span
+        className={
+          "grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold " +
+          (tone === "ai" ? "bg-primary text-primary-foreground" : "bg-ink text-ink-foreground")
+        }
+      >
+        {n}
+      </span>
+      <span className="text-sm font-bold text-foreground">{label}</span>
+      {tag && (
+        <span
+          className={
+            "ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold " +
+            (tone === "ai" ? "bg-accent text-accent-foreground" : "bg-muted text-muted-foreground")
+          }
+        >
+          {tone === "ai" ? <Sparkles className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
+          {tag}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function Option({ selected, recommended, onClick, children }: { selected: boolean; recommended: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
@@ -25,13 +55,15 @@ function Option({ selected, recommended, onClick, children }: { selected: boolea
       aria-pressed={selected}
       onClick={onClick}
       className={
-        "relative rounded-xl border p-3 text-left transition-all " +
-        (selected ? "border-primary bg-accent ring-1 ring-primary" : "border-border bg-card hover:border-input hover:bg-muted")
+        "relative min-w-0 rounded-xl border p-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+        (selected
+          ? "border-primary bg-accent ring-1 ring-primary"
+          : "border-border bg-card hover:-translate-y-px hover:border-input hover:shadow-card")
       }
     >
       {recommended && (
-        <span className="absolute -top-2 right-2 rounded-full bg-ink px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-ink-foreground">
-          Agent pick
+        <span className="absolute -top-2 right-2 flex items-center gap-0.5 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-primary-foreground">
+          <Sparkles className="h-2.5 w-2.5" /> AI pick
         </span>
       )}
       {children}
@@ -43,154 +75,186 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
   const [channel, setChannel] = useState<Channel>("whatsapp");
   const [timing, setTiming] = useState<Timing>("now");
   const [draft, setDraft] = useState("");
-  const [done, setDone] = useState(false);
+  const [state, setState] = useState<"review" | "approving" | "done">("review");
 
   useEffect(() => {
     if (c) {
       setChannel(c.recommendedChannel);
       setTiming(c.recommendedTiming);
       setDraft(c.draft);
-      setDone(false);
+      setState("review");
     }
   }, [c]);
 
   const approve = () => {
-    setDone(true);
-    toast.success("Action logged · review-first approval recorded");
+    setState("approving");
+    setTimeout(() => {
+      setState("done");
+      toast.success("Action logged · review-first approval recorded");
+    }, 700);
   };
 
-  const actionLabel = channel === "manual" ? "Approve follow-up" : "Approve & send";
+  const manual = channel === "manual";
+  const actionLabel = manual ? "Approve follow-up" : "Approve & send";
+  const edited = c ? draft !== c.draft : false;
 
   return (
     <Dialog.Root open={!!c} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/50 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[92vh] overflow-y-auto rounded-t-3xl bg-background shadow-pop outline-none data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-8 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:w-[min(920px,calc(100vw-3rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-3xl sm:data-[state=open]:zoom-in-95 sm:data-[state=open]:slide-in-from-bottom-0">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/55 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 flex max-h-[94dvh] flex-col overflow-hidden rounded-t-3xl bg-background shadow-pop outline-none data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-8 md:inset-auto md:left-1/2 md:top-1/2 md:max-h-[90dvh] md:w-[min(1000px,calc(100vw-3rem))] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:data-[state=open]:zoom-in-95 md:data-[state=open]:slide-in-from-bottom-0">
           {c && (
             <>
-              <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-background/95 px-5 py-4 backdrop-blur sm:px-8 sm:py-5">
-                <div>
-                  <div className="eyebrow flex items-center gap-1.5">
-                    <Sparkles className="h-3 w-3 text-primary" /> AI recovery recommendation
+              {/* Header */}
+              <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-5 py-4 md:px-7">
+                <div className="min-w-0">
+                  <div className="eyebrow flex items-center gap-1.5 text-primary">
+                    <Sparkles className="h-3 w-3" /> AI recovery recommendation
                   </div>
-                  <Dialog.Title className="mt-1 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+                  <Dialog.Title className="mt-1 truncate text-xl font-bold tracking-tight text-foreground md:text-2xl">
                     {c.customer} · {formatINR(c.amount)}
                   </Dialog.Title>
-                  <Dialog.Description className="text-sm text-muted-foreground">
-                    {c.reference} · {c.status}
+                  <Dialog.Description className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Lock className="h-3 w-3" /> {c.reference} · {c.status}
                   </Dialog.Description>
                 </div>
-                <Dialog.Close className="rounded-full p-2 text-muted-foreground hover:bg-muted" aria-label="Close">
+                <Dialog.Close className="shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground" aria-label="Close">
                   <X className="h-4 w-4" />
                 </Dialog.Close>
               </div>
 
-              {done ? (
-                <SuccessState c={c} onBack={onClose} manual={channel === "manual"} />
+              {state === "done" ? (
+                <div className="overflow-y-auto">
+                  <SuccessState c={c} onBack={onClose} manual={manual} channel={channel} timing={timing} edited={edited} />
+                </div>
               ) : (
-                <div className="grid gap-5 p-5 sm:p-8 md:grid-cols-[1fr_1.1fr]">
-                  {/* Why this now */}
-                  <div className="flex flex-col gap-5">
-                    <section className="rounded-2xl bg-ink p-5 text-ink-foreground">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-70">Why this now</span>
-                        <span className="flex items-center gap-1 rounded-full bg-ink-foreground/10 px-2 py-0.5 text-[10px] font-semibold">
-                          <Sparkles className="h-3 w-3" /> Recovery Agent
-                        </span>
-                      </div>
-                      <h3 className="mt-3 text-lg font-bold leading-snug">{c.headline}</h3>
-                      <p className="mt-2 text-sm leading-relaxed opacity-80">{c.explanation}</p>
-                      <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] opacity-60">Signals used by the agent</div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {c.signals.map((s) => (
-                          <span key={s} className="flex items-center gap-1.5 rounded-md border border-ink-foreground/15 bg-ink-foreground/5 px-2 py-1 font-mono text-[11px]">
-                            <Activity className="h-3 w-3 opacity-60" /> {s}
-                          </span>
-                        ))}
-                      </div>
-                    </section>
-                    {c.humanReview && (
-                      <div className="flex gap-3 rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm">
-                        <UserCheck className="h-5 w-5 shrink-0 text-warning" />
-                        <div>
-                          <div className="font-semibold text-foreground">Human review recommended</div>
-                          <div className="text-muted-foreground">Low confidence in an automated nudge for this value. A personal message from you is suggested.</div>
-                        </div>
-                      </div>
-                    )}
-                    <section className="surface p-5">
-                      <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-                        {["consent verified", "payment amount locked", "no discount invented", "opt-out stops future nudges"].map((g) => (
-                          <div key={g} className="flex items-center gap-2 text-foreground">
-                            <Check className="h-4 w-4 text-success" /> {g}
+                <>
+                  <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-5 md:grid-cols-2 md:p-7">
+                    {/* AI side */}
+                    <div className="flex min-w-0 flex-col gap-5">
+                      <section>
+                        <Step n={1} label="Why this now" tag="AI recommendation" />
+                        <div className="rounded-2xl bg-ink p-5 text-ink-foreground">
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="text-lg font-bold leading-snug">{c.headline}</h3>
+                            <div className="shrink-0 text-right">
+                              <div className="text-2xl font-bold leading-none">{c.recoverability}%</div>
+                              <div className="mt-1 text-[10px] uppercase tracking-wider opacity-60">confidence</div>
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                      <p className="mt-3 flex gap-2 text-xs leading-relaxed text-muted-foreground">
-                        <ShieldCheck className="h-4 w-4 shrink-0" />
-                        Review-first: nothing is sent until approval. The agent can be stopped at any time. Actions are logged for audit.
-                      </p>
-                    </section>
+                          <p className="mt-3 text-sm leading-relaxed opacity-80">{c.explanation}</p>
+                        </div>
+                      </section>
+                      <section>
+                        <Step n={2} label="Signals used" tag="Agent inputs" />
+                        <div className="grid grid-cols-2 gap-2">
+                          {c.signals.map((s) => (
+                            <div key={s} className="flex min-w-0 items-center gap-2 rounded-lg border border-accent-foreground/15 bg-accent px-2.5 py-2 font-mono text-[11px] text-accent-foreground">
+                              <Activity className="h-3 w-3 shrink-0" /> <span className="min-w-0">{s}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                      {c.humanReview && (
+                        <div className="flex gap-3 rounded-xl border border-warning/30 bg-warning-soft p-4 text-sm">
+                          <UserCheck className="h-5 w-5 shrink-0 text-warning" />
+                          <div>
+                            <div className="font-semibold text-foreground">Human review recommended</div>
+                            <div className="text-muted-foreground">Weak intent for a high-value invoice. A personal message from you is suggested.</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Merchant side */}
+                    <div className="flex min-w-0 flex-col gap-5">
+                      <section>
+                        <Step n={3} label="Recommended action" tag="AI pick · you can change" />
+                        <div className="eyebrow mb-2">Channel</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {channels.map((ch) => (
+                            <Option key={ch.id} selected={channel === ch.id} recommended={c.recommendedChannel === ch.id} onClick={() => setChannel(ch.id)}>
+                              <ch.icon className="h-4 w-4 text-primary" />
+                              <div className="mt-1.5 text-sm font-semibold text-foreground">{ch.label}</div>
+                              <div className="text-[11px] leading-tight text-muted-foreground">{ch.sub}</div>
+                            </Option>
+                          ))}
+                        </div>
+                        <div className="eyebrow mb-2 mt-4">Timing</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {timings.map((t) => (
+                            <Option key={t.id} selected={timing === t.id} recommended={c.recommendedTiming === t.id} onClick={() => setTiming(t.id)}>
+                              <div className="text-sm font-semibold text-foreground">{t.label}</div>
+                              <div className="text-[11px] leading-tight text-muted-foreground">{t.sub}</div>
+                            </Option>
+                          ))}
+                        </div>
+                      </section>
+                      <section>
+                        <Step n={4} label="Merchant control" tag={edited ? "Edited by you" : "Editable"} tone="you" />
+                        <label htmlFor="draft" className="eyebrow mb-2 flex items-center justify-between">
+                          <span>Draft message</span>
+                          <span className="font-medium normal-case tracking-normal">{draft.length} chars</span>
+                        </label>
+                        <textarea
+                          id="draft"
+                          value={draft}
+                          onChange={(e) => setDraft(e.target.value)}
+                          rows={4}
+                          className="w-full resize-none rounded-xl border border-dashed border-input bg-card p-3.5 text-sm leading-relaxed text-foreground outline-none transition hover:border-muted-foreground focus:border-solid focus:border-primary focus:ring-2 focus:ring-ring/20"
+                        />
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-xs">
+                            <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="text-muted-foreground">Amount</span>
+                            <span className="ml-auto font-semibold text-foreground">{formatINR(c.amount)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-xs">
+                            <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                            <span className="text-muted-foreground">Link</span>
+                            <span className="ml-auto font-semibold text-foreground">{c.refCode}</span>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-foreground">
+                          {["Consent verified", "Amount locked", "No discount invented", "Opt-out stops nudges"].map((g) => (
+                            <span key={g} className="flex items-center gap-1.5">
+                              <Check className="h-3.5 w-3.5 text-success" /> {g}
+                            </span>
+                          ))}
+                        </div>
+                      </section>
+                    </div>
                   </div>
 
-                  {/* Recommended action */}
-                  <section className="surface flex flex-col gap-5 p-5">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-foreground">Recommended action</h3>
-                      <span className={`rounded-full bg-muted px-2.5 py-1 text-xs font-bold ${scoreColor(c.recoverability)}`}>
-                        {c.recoverability}% confidence
-                      </span>
+                  {/* Step 5 · Approve */}
+                  <div className="flex shrink-0 flex-col gap-3 border-t border-border bg-card px-5 py-4 md:flex-row md:items-center md:justify-between md:px-7">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-ink text-[10px] font-bold text-ink-foreground">5</span>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        <span className="flex items-center gap-1 font-semibold text-foreground">
+                          <ShieldCheck className="h-3.5 w-3.5 text-success" /> Review-first: nothing is sent until you approve.
+                        </span>
+                        The agent can be stopped at any time. Actions are logged for audit.
+                      </p>
                     </div>
-                    <div>
-                      <div className="eyebrow mb-2">Channel</div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {channels.map((ch) => (
-                          <Option key={ch.id} selected={channel === ch.id} recommended={c.recommendedChannel === ch.id} onClick={() => setChannel(ch.id)}>
-                            <ch.icon className="h-4 w-4 text-primary" />
-                            <div className="mt-1.5 text-sm font-semibold text-foreground">{ch.label}</div>
-                            <div className="text-[11px] leading-tight text-muted-foreground">{ch.sub}</div>
-                          </Option>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="eyebrow mb-2">Timing</div>
-                      <div className="grid grid-cols-3 gap-2">
-                        {timings.map((t) => (
-                          <Option key={t.id} selected={timing === t.id} recommended={c.recommendedTiming === t.id} onClick={() => setTiming(t.id)}>
-                            <div className="text-sm font-semibold text-foreground">{t.label}</div>
-                            <div className="text-[11px] leading-tight text-muted-foreground">{t.sub}</div>
-                          </Option>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="draft" className="eyebrow mb-2 flex items-center justify-between">
-                        <span>Draft message</span>
-                        <span className="normal-case tracking-normal font-medium">Editable · {draft.length} chars</span>
-                      </label>
-                      <textarea
-                        id="draft"
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        rows={5}
-                        className="w-full resize-none rounded-xl border border-input bg-card p-3.5 text-sm leading-relaxed text-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-ring/20"
-                      />
-                    </div>
-                    <div className="mt-auto flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                      <Dialog.Close className="rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted">
+                    <div className="flex shrink-0 gap-2">
+                      <Dialog.Close className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-muted md:flex-none">
                         Not now
                       </Dialog.Close>
                       <button
                         onClick={approve}
-                        disabled={!draft.trim()}
-                        className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+                        disabled={!draft.trim() || state === "approving"}
+                        className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:flex-none"
                       >
-                        {actionLabel}
+                        {state === "approving" ? (
+                          <><Loader2 className="h-4 w-4 animate-spin" /> Recording approval…</>
+                        ) : (
+                          <><Check className="h-4 w-4" /> {actionLabel}</>
+                        )}
                       </button>
                     </div>
-                  </section>
-                </div>
+                  </div>
+                </>
               )}
             </>
           )}
@@ -200,25 +264,45 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
   );
 }
 
-function SuccessState({ c, onBack, manual }: { c: RecoveryCase; onBack: () => void; manual: boolean }) {
+function SuccessState({ c, onBack, manual, channel, timing, edited }: { c: RecoveryCase; onBack: () => void; manual: boolean; channel: Channel; timing: Timing; edited: boolean }) {
+  const chLabel = channels.find((x) => x.id === channel)?.label;
+  const tLabel = timings.find((x) => x.id === timing)?.label;
+  const audit = [
+    ["9:14 AM", `Agent recommended ${channels.find((x) => x.id === c.recommendedChannel)?.label} · ${c.recoverability}% confidence`],
+    ["9:14 AM", `Merchant ${edited ? "edited message and " : ""}approved ${chLabel} · ${tLabel}`],
+    ["9:14 AM", manual ? "Follow-up task created (simulated)" : "Outreach simulated as sent"],
+  ];
   return (
-    <div className="mx-auto flex max-w-lg flex-col items-center px-6 py-12 text-center animate-in fade-in-0 zoom-in-95">
-      <div className="grid h-14 w-14 place-items-center rounded-full bg-success-soft">
+    <div className="mx-auto flex max-w-xl flex-col items-center px-6 py-10 text-center animate-in fade-in-0 zoom-in-95">
+      <div className="grid h-14 w-14 place-items-center rounded-full bg-success-soft ring-8 ring-success-soft/50">
         <Check className="h-7 w-7 text-success" strokeWidth={3} />
       </div>
       <h3 className="mt-5 text-2xl font-bold tracking-tight text-foreground">Recovery action approved</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
         The approved {c.customer} {manual ? "follow-up is queued for you as a task (simulated)" : "outreach is simulated as sent"}. Payment link {c.refCode} is unchanged; no price or discount was altered.
       </p>
-      <div className="mt-6 w-full rounded-2xl border border-border bg-muted p-4 text-left">
-        <div className="eyebrow flex items-center gap-1.5">
-          <Sparkles className="h-3 w-3 text-primary" /> Agent learning signal
+      <div className="mt-6 w-full rounded-2xl border border-accent-foreground/15 bg-accent p-4 text-left">
+        <div className="eyebrow flex items-center gap-1.5 text-accent-foreground">
+          <BrainCircuit className="h-3.5 w-3.5" /> Agent learning signal
         </div>
         <p className="mt-1.5 text-sm text-foreground">
           On payment, record the outcome against {c.firstName}'s response and timing features. Use it to refine future ranking and timing recommendations.
         </p>
       </div>
-      <button onClick={onBack} className="mt-6 rounded-xl bg-ink px-5 py-2.5 text-sm font-semibold text-ink-foreground hover:opacity-90">
+      <div className="mt-3 w-full rounded-2xl border border-border bg-card p-4 text-left">
+        <div className="eyebrow flex items-center gap-1.5">
+          <ScrollText className="h-3.5 w-3.5" /> Audit trail
+        </div>
+        <ul className="mt-2 space-y-1.5">
+          {audit.map(([t, e]) => (
+            <li key={e} className="flex gap-3 font-mono text-[11px] text-muted-foreground">
+              <span className="shrink-0">{t}</span>
+              <span className="text-foreground">{e}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <button onClick={onBack} className="mt-6 rounded-xl bg-ink px-5 py-2.5 text-sm font-semibold text-ink-foreground transition hover:opacity-90 active:scale-[0.98]">
         Back to recovery queue
       </button>
     </div>
