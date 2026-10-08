@@ -173,7 +173,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                             <h3 className="text-lg font-bold leading-snug">{view.headline}</h3>
                             <div className="shrink-0 text-right">
                               <div className="text-2xl font-bold leading-none">{view.score}%</div>
-                              <div className="mt-1 text-[10px] uppercase tracking-wider opacity-60">confidence</div>
+                              <div className="mt-1 text-[10px] uppercase tracking-wider opacity-60">recoverable</div>
                             </div>
                           </div>
                           <p className="mt-3 text-sm leading-relaxed opacity-80">{view.reason}</p>
