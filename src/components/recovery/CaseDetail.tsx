@@ -109,7 +109,8 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
 
   const view = c && {
     score: ai?.recoverability_score ?? c.recoverability,
-    headline: ai ? `${cap(ai.confidence)}-confidence recovery for ${c.firstName}.` : c.headline,
+    headline: ai?.recommendation_title || c.headline,
+    confidence: ai?.confidence,
     reason: ai?.recommendation_reason ?? c.explanation,
     recChannel: ai?.recommended_channel ?? c.recommendedChannel,
     recTiming: ai ? mapTiming(ai.recommended_timing) : c.recommendedTiming,
@@ -166,7 +167,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                     {/* AI side */}
                     <div className="flex min-w-0 flex-col gap-5">
                       <section>
-                        <Step n={1} label="Why this now" tag={aiStatus === "ai" ? "Live AI recommendation" : "AI recommendation"} />
+                        <Step n={1} label="AI recommendation" tag="AI decision" />
                         {loading ? <AiLoading /> : (
                         <div className="rounded-2xl bg-ink p-5 text-ink-foreground animate-in fade-in-0">
                           <div className="flex items-start justify-between gap-3">
@@ -174,9 +175,11 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                             <div className="shrink-0 text-right">
                               <div className="text-2xl font-bold leading-none">{view.score}%</div>
                               <div className="mt-1 text-[10px] uppercase tracking-wider opacity-60">recoverable</div>
+                              {view.confidence && <div className="mt-1.5 rounded-full bg-ink-foreground/10 px-2 py-0.5 text-[10px] font-semibold">{cap(view.confidence)} confidence</div>}
                             </div>
                           </div>
-                          <p className="mt-3 text-sm leading-relaxed opacity-80">{view.reason}</p>
+                          <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] opacity-60">Why this recommendation</div>
+                          <p className="mt-1 text-sm leading-relaxed opacity-85">{view.reason}</p>
                           {view.timingText && (
                             <p className="mt-3 text-xs opacity-70">Suggested timing: <span className="font-semibold opacity-100">{view.timingText}</span></p>
                           )}
@@ -274,7 +277,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                       <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-ink text-[10px] font-bold text-ink-foreground">5</span>
                       <p className="text-xs leading-relaxed text-muted-foreground">
                         <span className="flex items-center gap-1 font-semibold text-foreground">
-                          <ShieldCheck className="h-3.5 w-3.5 text-success" /> Review-first: nothing is sent until you approve.
+                          <ShieldCheck className="h-3.5 w-3.5 text-success" /> Merchant approval required — nothing is sent until you approve.
                         </span>
                         The agent can be stopped at any time. Actions are logged for audit.
                       </p>
@@ -319,13 +322,13 @@ function SuccessState({ c, score, recChannel, learning, onBack, manual, channel,
       <div className="grid h-14 w-14 place-items-center rounded-full bg-success-soft ring-8 ring-success-soft/50">
         <Check className="h-7 w-7 text-success" strokeWidth={3} />
       </div>
-      <h3 className="mt-5 text-2xl font-bold tracking-tight text-foreground">Recovery action approved</h3>
+      <h3 className="mt-5 text-2xl font-bold tracking-tight text-foreground">Action approved</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
         The approved {c.customer} {manual ? "follow-up is queued for you as a task (simulated)" : "outreach is simulated as sent"}. Payment link {c.refCode} is unchanged; no price or discount was altered.
       </p>
       <div className="mt-6 w-full rounded-2xl border border-accent-foreground/15 bg-accent p-4 text-left">
         <div className="eyebrow flex items-center gap-1.5 text-accent-foreground">
-          <BrainCircuit className="h-3.5 w-3.5" /> Agent learning signal
+          <BrainCircuit className="h-3.5 w-3.5" /> Learning signal recorded
         </div>
         <p className="mt-1.5 text-sm text-foreground">
           {learning}

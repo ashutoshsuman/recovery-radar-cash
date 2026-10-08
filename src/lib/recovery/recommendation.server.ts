@@ -10,17 +10,21 @@ Rules:
 - If customer_timing_signal is present, respect it when choosing timing.
 - The merchant approves everything. Never claim anything was sent or executed.
 - draft_message: short, polite, under 280 characters, addressed by first name, mentions the exact amount (₹ with Indian grouping) and payment reference, and includes the placeholder link https://rzp.io/i/demo<digits of reference>. For "manual", write a personal follow-up the merchant could send.
-- recommendation_reason: 1-2 sentences citing the specific signals.
+- You own the decision. Reason about what the signals imply (intent, habit, urgency, risk) and why this channel and timing beat the alternatives — do not just list the signals back.
+- recommendation_title: a decision-oriented headline under 60 characters naming the customer's first name and the move, e.g. "Nudge Rahul now — strong payment intent", "Best next move: WhatsApp Priya at 6:15 PM", "Call Vikram personally — high value, low engagement". Never generic.
+- recommended_timing: short and specific, e.g. "Now", "Today, 6:15 PM", "After 6 PM today".
+- recommendation_reason: 1-2 sentences explaining why this action now, grounded in the signals.
 - learning_signal: one sentence on which outcome to record (paid / time-to-pay / response) against which features.`;
 
 const schema = {
   type: "object",
   additionalProperties: false,
   required: [
-    "recoverability_score", "recommended_channel", "recommended_timing",
+    "recommendation_title", "recoverability_score", "recommended_channel", "recommended_timing",
     "recommendation_reason", "draft_message", "confidence", "learning_signal",
   ],
   properties: {
+    recommendation_title: { type: "string" },
     recoverability_score: { type: "integer", minimum: 0, maximum: 100 },
     recommended_channel: { type: "string", enum: ["whatsapp", "sms", "manual"] },
     recommended_timing: { type: "string" },
@@ -32,23 +36,14 @@ const schema = {
 };
 
 export async function generateRecommendation(input: RecommendationInput): Promise<AiRecommendation> {
-  const openaiKey = process.env["OPENAI_API_KEY"];
   const lovableKey = process.env["LOVABLE_API_KEY"];
-  if (!openaiKey && !lovableKey) throw new Error("no_ai_key");
+  if (!lovableKey) throw new Error("no_ai_key");
 
-  const url = openaiKey ? "https://api.openai.com/v1/responses" : "https://ai.gateway.lovable.dev/v1/responses";
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (openaiKey) headers["Authorization"] = `Bearer ${openaiKey}`;
-  else {
-    headers["Lovable-API-Key"] = lovableKey!;
-    headers["X-Lovable-AIG-SDK"] = "fetch";
-  }
-
-  const res = await fetch(url, {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/responses", {
     method: "POST",
-    headers,
+    headers: { "Content-Type": "application/json", "Lovable-API-Key": lovableKey, "X-Lovable-AIG-SDK": "fetch" },
     body: JSON.stringify({
-      model: openaiKey ? "gpt-5-mini" : "openai/gpt-6-astra",
+      model: "openai/gpt-6-astra",
       instructions: SYSTEM,
       input: `Signals:\n${JSON.stringify(input, null, 2)}`,
       stream: true,

@@ -39,6 +39,7 @@ export interface RecommendationInput {
 }
 
 export interface AiRecommendation {
+  recommendation_title: string;
   recoverability_score: number;
   recommended_channel: Channel;
   recommended_timing: string;
