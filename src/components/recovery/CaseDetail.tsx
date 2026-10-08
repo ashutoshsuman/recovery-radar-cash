@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
+import { getRecoveryRecommendation } from "@/lib/recovery/recommendation.functions";
+import type { AiRecommendation } from "@/lib/recovery/types";
 import * as Dialog from "@radix-ui/react-dialog";
 import { toast } from "sonner";
 import {
@@ -76,15 +79,45 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
   const [timing, setTiming] = useState<Timing>("now");
   const [draft, setDraft] = useState("");
   const [state, setState] = useState<"review" | "approving" | "done">("review");
+  const [ai, setAi] = useState<AiRecommendation | null>(null);
+  const [aiStatus, setAiStatus] = useState<"loading" | "ai" | "fallback">("loading");
+  const fetchRec = useServerFn(getRecoveryRecommendation);
+  const reqId = useRef(0);
 
   useEffect(() => {
-    if (c) {
-      setChannel(c.recommendedChannel);
-      setTiming(c.recommendedTiming);
-      setDraft(c.draft);
-      setState("review");
-    }
-  }, [c]);
+    if (!c) return;
+    setChannel(c.recommendedChannel);
+    setTiming(c.recommendedTiming);
+    setDraft(c.draft);
+    setState("review");
+    setAi(null);
+    setAiStatus("loading");
+    const id = ++reqId.current;
+    fetchRec({ data: c.input })
+      .then((r) => {
+        if (id !== reqId.current) return;
+        if (r.ok) {
+          setAi(r.recommendation);
+          setChannel(r.recommendation.recommended_channel);
+          setTiming(mapTiming(r.recommendation.recommended_timing));
+          setDraft(r.recommendation.draft_message);
+          setAiStatus("ai");
+        } else setAiStatus("fallback");
+      })
+      .catch(() => id === reqId.current && setAiStatus("fallback"));
+  }, [c, fetchRec]);
+
+  const view = c && {
+    score: ai?.recoverability_score ?? c.recoverability,
+    headline: ai ? `${cap(ai.confidence)}-confidence recovery for ${c.firstName}.` : c.headline,
+    reason: ai?.recommendation_reason ?? c.explanation,
+    recChannel: ai?.recommended_channel ?? c.recommendedChannel,
+    recTiming: ai ? mapTiming(ai.recommended_timing) : c.recommendedTiming,
+    timingText: ai?.recommended_timing,
+    learning: ai?.learning_signal ?? c.learning,
+    baseDraft: ai?.draft_message ?? c.draft,
+  };
+  const loading = aiStatus === "loading";
 
   const approve = () => {
     setState("approving");
@@ -96,14 +129,14 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
 
   const manual = channel === "manual";
   const actionLabel = manual ? "Approve follow-up" : "Approve & send";
-  const edited = c ? draft !== c.draft : false;
+  const edited = view ? draft !== view.baseDraft : false;
 
   return (
     <Dialog.Root open={!!c} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/55 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0" />
         <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 flex max-h-[94dvh] flex-col overflow-hidden rounded-t-3xl bg-background shadow-pop outline-none data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-8 md:inset-auto md:left-1/2 md:top-1/2 md:max-h-[90dvh] md:w-[min(1000px,calc(100vw-3rem))] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:data-[state=open]:zoom-in-95 md:data-[state=open]:slide-in-from-bottom-0">
-          {c && (
+          {c && view && (
             <>
               {/* Header */}
               <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border px-5 py-4 md:px-7">
@@ -125,7 +158,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
 
               {state === "done" ? (
                 <div className="overflow-y-auto">
-                  <SuccessState c={c} onBack={onClose} manual={manual} channel={channel} timing={timing} edited={edited} />
+                  <SuccessState c={c} score={view.score} recChannel={view.recChannel} learning={view.learning} onBack={onClose} manual={manual} channel={channel} timing={timing} edited={edited} />
                 </div>
               ) : (
                 <>
@@ -133,17 +166,25 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                     {/* AI side */}
                     <div className="flex min-w-0 flex-col gap-5">
                       <section>
-                        <Step n={1} label="Why this now" tag="AI recommendation" />
-                        <div className="rounded-2xl bg-ink p-5 text-ink-foreground">
+                        <Step n={1} label="Why this now" tag={aiStatus === "ai" ? "Live AI recommendation" : "AI recommendation"} />
+                        {loading ? <AiLoading /> : (
+                        <div className="rounded-2xl bg-ink p-5 text-ink-foreground animate-in fade-in-0">
                           <div className="flex items-start justify-between gap-3">
-                            <h3 className="text-lg font-bold leading-snug">{c.headline}</h3>
+                            <h3 className="text-lg font-bold leading-snug">{view.headline}</h3>
                             <div className="shrink-0 text-right">
-                              <div className="text-2xl font-bold leading-none">{c.recoverability}%</div>
-                              <div className="mt-1 text-[10px] uppercase tracking-wider opacity-60">confidence</div>
+                              <div className="text-2xl font-bold leading-none">{view.score}%</div>
+                              <div className="mt-1 text-[10px] uppercase tracking-wider opacity-60">recoverable</div>
                             </div>
                           </div>
-                          <p className="mt-3 text-sm leading-relaxed opacity-80">{c.explanation}</p>
+                          <p className="mt-3 text-sm leading-relaxed opacity-80">{view.reason}</p>
+                          {view.timingText && (
+                            <p className="mt-3 text-xs opacity-70">Suggested timing: <span className="font-semibold opacity-100">{view.timingText}</span></p>
+                          )}
+                          {aiStatus === "fallback" && (
+                            <p className="mt-3 text-[11px] opacity-60">Showing the agent's saved recommendation.</p>
+                          )}
                         </div>
+                        )}
                       </section>
                       <section>
                         <Step n={2} label="Signals used" tag="Agent inputs" />
@@ -173,7 +214,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                         <div className="eyebrow mb-2">Channel</div>
                         <div className="grid grid-cols-3 gap-2">
                           {channels.map((ch) => (
-                            <Option key={ch.id} selected={channel === ch.id} recommended={c.recommendedChannel === ch.id} onClick={() => setChannel(ch.id)}>
+                            <Option key={ch.id} selected={channel === ch.id} recommended={!loading && view.recChannel === ch.id} onClick={() => setChannel(ch.id)}>
                               <ch.icon className="h-4 w-4 text-primary" />
                               <div className="mt-1.5 text-sm font-semibold text-foreground">{ch.label}</div>
                               <div className="text-[11px] leading-tight text-muted-foreground">{ch.sub}</div>
@@ -183,7 +224,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                         <div className="eyebrow mb-2 mt-4">Timing</div>
                         <div className="grid grid-cols-3 gap-2">
                           {timings.map((t) => (
-                            <Option key={t.id} selected={timing === t.id} recommended={c.recommendedTiming === t.id} onClick={() => setTiming(t.id)}>
+                            <Option key={t.id} selected={timing === t.id} recommended={!loading && view.recTiming === t.id} onClick={() => setTiming(t.id)}>
                               <div className="text-sm font-semibold text-foreground">{t.label}</div>
                               <div className="text-[11px] leading-tight text-muted-foreground">{t.sub}</div>
                             </Option>
@@ -198,10 +239,11 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                         </label>
                         <textarea
                           id="draft"
-                          value={draft}
+                          value={loading ? "Recovery Agent is drafting a message…" : draft}
+                          disabled={loading}
                           onChange={(e) => setDraft(e.target.value)}
                           rows={4}
-                          className="w-full resize-none rounded-xl border border-dashed border-input bg-card p-3.5 text-sm leading-relaxed text-foreground outline-none transition hover:border-muted-foreground focus:border-solid focus:border-primary focus:ring-2 focus:ring-ring/20"
+                          className="w-full resize-none rounded-xl border border-dashed border-input bg-card p-3.5 text-sm leading-relaxed text-foreground outline-none transition hover:border-muted-foreground focus:border-solid focus:border-primary focus:ring-2 focus:ring-ring/20 disabled:animate-pulse disabled:text-muted-foreground"
                         />
                         <div className="mt-2 grid grid-cols-2 gap-2">
                           <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-xs">
@@ -243,7 +285,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                       </Dialog.Close>
                       <button
                         onClick={approve}
-                        disabled={!draft.trim() || state === "approving"}
+                        disabled={loading || !draft.trim() || state === "approving"}
                         className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:flex-none"
                       >
                         {state === "approving" ? (
@@ -264,11 +306,11 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
   );
 }
 
-function SuccessState({ c, onBack, manual, channel, timing, edited }: { c: RecoveryCase; onBack: () => void; manual: boolean; channel: Channel; timing: Timing; edited: boolean }) {
+function SuccessState({ c, score, recChannel, learning, onBack, manual, channel, timing, edited }: { c: RecoveryCase; score: number; recChannel: Channel; learning: string; onBack: () => void; manual: boolean; channel: Channel; timing: Timing; edited: boolean }) {
   const chLabel = channels.find((x) => x.id === channel)?.label;
   const tLabel = timings.find((x) => x.id === timing)?.label;
   const audit = [
-    ["9:14 AM", `Agent recommended ${channels.find((x) => x.id === c.recommendedChannel)?.label} · ${c.recoverability}% confidence`],
+    ["9:14 AM", `Agent recommended ${channels.find((x) => x.id === recChannel)?.label} · ${score}% recoverability`],
     ["9:14 AM", `Merchant ${edited ? "edited message and " : ""}approved ${chLabel} · ${tLabel}`],
     ["9:14 AM", manual ? "Follow-up task created (simulated)" : "Outreach simulated as sent"],
   ];
@@ -286,7 +328,7 @@ function SuccessState({ c, onBack, manual, channel, timing, edited }: { c: Recov
           <BrainCircuit className="h-3.5 w-3.5" /> Agent learning signal
         </div>
         <p className="mt-1.5 text-sm text-foreground">
-          On payment, record the outcome against {c.firstName}'s response and timing features. Use it to refine future ranking and timing recommendations.
+          {learning}
         </p>
       </div>
       <div className="mt-3 w-full rounded-2xl border border-border bg-card p-4 text-left">
@@ -305,6 +347,32 @@ function SuccessState({ c, onBack, manual, channel, timing, edited }: { c: Recov
       <button onClick={onBack} className="mt-6 rounded-xl bg-ink px-5 py-2.5 text-sm font-semibold text-ink-foreground transition hover:opacity-90 active:scale-[0.98]">
         Back to recovery queue
       </button>
+    </div>
+  );
+}
+
+function cap(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export function mapTiming(t: string): Timing {
+  const s = t.toLowerCase();
+  if (s.includes("tomorrow")) return "tomorrow";
+  if (/evening|pm|6|after/.test(s) && !/^now|immediately/.test(s)) return "evening";
+  return "now";
+}
+
+function AiLoading() {
+  return (
+    <div className="rounded-2xl bg-ink p-5 text-ink-foreground" aria-live="polite">
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <Loader2 className="h-4 w-4 animate-spin" /> Recovery Agent is analysing signals…
+      </div>
+      <div className="mt-4 space-y-2">
+        <div className="h-3 w-11/12 animate-pulse rounded bg-ink-foreground/15" />
+        <div className="h-3 w-9/12 animate-pulse rounded bg-ink-foreground/15" />
+        <div className="h-3 w-10/12 animate-pulse rounded bg-ink-foreground/15" />
+      </div>
     </div>
   );
 }
