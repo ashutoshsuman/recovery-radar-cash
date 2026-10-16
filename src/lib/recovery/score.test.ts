@@ -10,3 +10,11 @@ describe("scoreBand", () => {
     expect(s).toMatchObject({ Rahul: 90, Priya: 84, Neha: 71, Vikram: 63 });
   });
 });
+import { rankScore } from "./score";
+describe("rankScore", () => {
+  it("orders Rahul, Priya, Vikram, Neha", () => {
+    const order = [...cases].sort((a, b) => rankScore(b) - rankScore(a)).map((c) => c.firstName);
+    expect(order).toEqual(["Rahul", "Priya", "Vikram", "Neha"]);
+  });
+  it("uses amount × score/100 × urgency", () => expect(rankScore({ amount: 7500, recoverability: 90, urgencyWeight: 2 })).toBe(13500));
+});

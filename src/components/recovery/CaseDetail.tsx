@@ -93,7 +93,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
     setAi(null);
     setAiStatus("loading");
     const id = ++reqId.current;
-    fetchRec({ data: c.input })
+    fetchRec({ data: { ...c.input, recoverability_score: c.recoverability, band: scoreBand(c.recoverability) } })
       .then((r) => {
         if (id !== reqId.current) return;
         if (r.ok) {
@@ -110,12 +110,10 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
   const view = c && {
     score: c.recoverability,
     headline: ai?.recommendation_title || c.headline,
-    confidence: ai?.confidence,
     reason: ai?.recommendation_reason ?? c.explanation,
     recChannel: ai?.recommended_channel ?? c.recommendedChannel,
     recTiming: ai ? mapTiming(ai.recommended_timing) : c.recommendedTiming,
     timingText: ai?.recommended_timing,
-    learning: ai?.learning_signal ?? c.learning,
     baseDraft: ai?.draft_message ?? c.draft,
   };
   const loading = aiStatus === "loading";
@@ -136,7 +134,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
     <Dialog.Root open={!!c} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-ink/55 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 flex max-h-[94dvh] flex-col overflow-hidden rounded-t-3xl bg-background shadow-pop outline-none data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-8 md:inset-auto md:left-1/2 md:top-1/2 md:max-h-[90dvh] md:w-[min(1000px,calc(100vw-3rem))] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:data-[state=open]:zoom-in-95 md:data-[state=open]:slide-in-from-bottom-0">
+        <Dialog.Content className="fixed inset-0 z-50 flex h-dvh flex-col overflow-hidden bg-background shadow-pop outline-none data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-8 md:inset-auto md:h-auto md:left-1/2 md:top-1/2 md:max-h-[90dvh] md:w-[min(1000px,calc(100vw-3rem))] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-3xl md:data-[state=open]:zoom-in-95 md:data-[state=open]:slide-in-from-bottom-0">
           {c && view && (
             <>
               {/* Header */}
@@ -152,14 +150,14 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                     <Lock className="h-3 w-3" /> {c.reference} · {c.status}
                   </Dialog.Description>
                 </div>
-                <Dialog.Close className="shrink-0 rounded-full p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground" aria-label="Close">
+                <Dialog.Close className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="Close">
                   <X className="h-4 w-4" />
                 </Dialog.Close>
               </div>
 
               {state === "done" ? (
                 <div className="overflow-y-auto">
-                  <SuccessState c={c} score={view.score} recChannel={view.recChannel} learning={view.learning} onBack={onClose} manual={manual} channel={channel} timing={timing} edited={edited} />
+                  <SuccessState c={c} score={view.score} recChannel={view.recChannel} onBack={onClose} manual={manual} channel={channel} timing={timing} edited={edited} />
                 </div>
               ) : (
                 <>
@@ -175,7 +173,6 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                             <div className="shrink-0 text-right">
                               <div className="text-lg font-bold leading-none">{scoreBand(view.score)}</div>
                               <div className="mt-1 text-[10px] uppercase tracking-wider opacity-60">likelihood · {view.score}</div>
-                              {view.confidence && <div className="mt-1.5 rounded-full bg-ink-foreground/10 px-2 py-0.5 text-[10px] font-semibold">{cap(view.confidence)} confidence</div>}
                             </div>
                           </div>
                           <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] opacity-60">Why this recommendation</div>
@@ -193,7 +190,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                         <Step n={2} label="Signals used" tag="Agent inputs" />
                         <div className="grid grid-cols-2 gap-2">
                           {c.signals.map((s) => (
-                            <div key={s} className="flex min-w-0 items-center gap-2 rounded-lg border border-accent-foreground/15 bg-accent px-2.5 py-2 font-mono text-[11px] text-accent-foreground">
+                            <div key={s} className="flex min-w-0 items-center gap-2 rounded-lg border border-accent-foreground/15 bg-accent px-2.5 py-2 text-xs text-accent-foreground">
                               <Activity className="h-3 w-3 shrink-0" /> <span className="min-w-0">{s}</span>
                             </div>
                           ))}
@@ -260,7 +257,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                             <span className="ml-auto font-semibold text-foreground">{c.refCode}</span>
                           </div>
                         </div>
-                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-foreground">
+                        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs text-foreground">
                           {["Consent verified", "Amount locked", "No discount invented", "Opt-out stops nudges"].map((g) => (
                             <span key={g} className="flex items-center gap-1.5">
                               <Check className="h-3.5 w-3.5 text-success" /> {g}
@@ -283,13 +280,13 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                       </p>
                     </div>
                     <div className="flex shrink-0 gap-2">
-                      <Dialog.Close className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-muted md:flex-none">
+                      <Dialog.Close className="flex h-11 flex-1 items-center justify-center rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground transition hover:bg-muted md:flex-none">
                         Not now
                       </Dialog.Close>
                       <button
                         onClick={approve}
                         disabled={loading || !draft.trim() || state === "approving"}
-                        className="flex flex-[2] items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:flex-none"
+                        className="flex h-11 flex-[2] items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground shadow-card transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 md:flex-none"
                       >
                         {state === "approving" ? (
                           <><Loader2 className="h-4 w-4 animate-spin" /> Recording approval…</>
@@ -309,7 +306,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
   );
 }
 
-function SuccessState({ c, score, recChannel, learning, onBack, manual, channel, timing, edited }: { c: RecoveryCase; score: number; recChannel: Channel; learning: string; onBack: () => void; manual: boolean; channel: Channel; timing: Timing; edited: boolean }) {
+function SuccessState({ c, score, recChannel, onBack, manual, channel, timing, edited }: { c: RecoveryCase; score: number; recChannel: Channel; onBack: () => void; manual: boolean; channel: Channel; timing: Timing; edited: boolean }) {
   const chLabel = channels.find((x) => x.id === channel)?.label;
   const tLabel = timings.find((x) => x.id === timing)?.label;
   const audit = [
@@ -324,14 +321,14 @@ function SuccessState({ c, score, recChannel, learning, onBack, manual, channel,
       </div>
       <h3 className="mt-5 text-2xl font-bold tracking-tight text-foreground">Action approved</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        The approved {c.customer} {manual ? "follow-up is queued for you as a task (simulated)" : "outreach is simulated as sent"}. Payment link {c.refCode} is unchanged; no price or discount was altered.
+        {manual ? `Follow-up to ${c.firstName} approved and queued as a task (simulated).` : `Reminder to ${c.firstName} approved and simulated as sent.`} Payment link {c.refCode} and the amount are unchanged; no discount was offered.
       </p>
       <div className="mt-6 w-full rounded-2xl border border-accent-foreground/15 bg-accent p-4 text-left">
         <div className="eyebrow flex items-center gap-1.5 text-accent-foreground">
           <BrainCircuit className="h-3.5 w-3.5" /> Learning signal recorded
         </div>
         <p className="mt-1.5 text-sm text-foreground">
-          {learning}
+          We'll track whether {c.firstName} pays and how quickly, to improve future timing and channel recommendations.
         </p>
       </div>
       <div className="mt-3 w-full rounded-2xl border border-border bg-card p-4 text-left">
@@ -354,9 +351,6 @@ function SuccessState({ c, score, recChannel, learning, onBack, manual, channel,
   );
 }
 
-function cap(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
 
 export function mapTiming(t: string): Timing {
   const s = t.toLowerCase();

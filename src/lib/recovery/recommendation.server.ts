@@ -1,4 +1,5 @@
 import type { AiRecommendation, RecommendationInput } from "./types";
+import type { Band } from "./score";
 
 const SYSTEM = `You are Recovery Agent, a payment-recovery decisioning agent for an Indian SME merchant. You are not a chatbot.
 Given structured signals about one outstanding payment, decide the best next action for the merchant to review.
@@ -14,28 +15,24 @@ Rules:
 - recommendation_title: a decision-oriented headline under 60 characters naming the customer's first name and the move, e.g. "Nudge Rahul now — strong payment intent", "Best next move: WhatsApp Priya at 6:15 PM", "Call Vikram personally — high value, low engagement". Never generic.
 - recommended_timing: short and specific, e.g. "Now", "Today, 6:15 PM", "After 6 PM today".
 - recommendation_reason: 1-2 sentences explaining why this action now, grounded in the signals.
-- learning_signal: one sentence on which outcome to record (paid / time-to-pay / response) against which features.`;
+- recoverability_score and band are FIXED inputs computed by the merchant's model. Treat them as given context; do not recompute, restate, or contradict them.
+- NEVER output any probability, percentage, likelihood number or score anywhere in your text.
+- You only generate: recommendation_title, recommendation_reason, recommended_channel, recommended_timing, draft_message.`;
 
 const schema = {
   type: "object",
   additionalProperties: false,
-  required: [
-    "recommendation_title", "recoverability_score", "recommended_channel", "recommended_timing",
-    "recommendation_reason", "draft_message", "confidence", "learning_signal",
-  ],
+  required: ["recommendation_title", "recommended_channel", "recommended_timing", "recommendation_reason", "draft_message"],
   properties: {
     recommendation_title: { type: "string" },
-    recoverability_score: { type: "integer", minimum: 0, maximum: 100 },
     recommended_channel: { type: "string", enum: ["whatsapp", "sms", "manual"] },
     recommended_timing: { type: "string" },
     recommendation_reason: { type: "string" },
     draft_message: { type: "string" },
-    confidence: { type: "string", enum: ["high", "medium", "low"] },
-    learning_signal: { type: "string" },
   },
 };
 
-export async function generateRecommendation(input: RecommendationInput): Promise<AiRecommendation> {
+export async function generateRecommendation(input: RecommendationInput & { recoverability_score: number; band: Band }): Promise<AiRecommendation> {
   const lovableKey = process.env["LOVABLE_API_KEY"];
   if (!lovableKey) throw new Error("no_ai_key");
 
@@ -81,7 +78,6 @@ export async function generateRecommendation(input: RecommendationInput): Promis
 
   const out = JSON.parse(text) as AiRecommendation;
   // Server-side guardrails
-  out.recoverability_score = Math.max(0, Math.min(100, Math.round(out.recoverability_score)));
   if (!input.consent_verified) out.recommended_channel = "manual";
   return out;
 }

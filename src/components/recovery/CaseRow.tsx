@@ -6,7 +6,7 @@ import { bandText, scoreBand } from "@/lib/recovery/score";
 const toneClass: Record<BadgeTone, string> = {
   intent: "bg-success-soft text-success",
   timing: "bg-accent text-accent-foreground",
-  neutral: "bg-muted text-muted-foreground",
+  neutral: "bg-muted text-muted-foreground ring-1 ring-inset ring-border",
   review: "bg-warning-soft text-warning",
 };
 
