@@ -6,6 +6,7 @@ import { CaseRow } from "@/components/recovery/CaseRow";
 import { CaseDetail } from "@/components/recovery/CaseDetail";
 import { cases, formatINR, guardrails, summary } from "@/lib/recovery/mock-data";
 import type { RecoveryCase } from "@/lib/recovery/types";
+import { rankScore } from "@/lib/recovery/score";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [active, setActive] = useState<RecoveryCase | null>(null);
-  const ranked = [...cases].sort((a, b) => b.recoverability - a.recoverability);
+  const ranked = [...cases].sort((a, b) => rankScore(b) - rankScore(a));
   const top = ranked[0] ?? null;
 
   return (
