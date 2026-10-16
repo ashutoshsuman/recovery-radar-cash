@@ -23,7 +23,7 @@ export const cases: RecoveryCase[] = [
       { label: "Best window now", tone: "timing" },
     ],
     reason: "Viewed twice; paid 3 previous invoices within 48h.",
-    recoverability: 91,
+    recoverability: 90,
     headline: "Rahul looks highly recoverable right now.",
     explanation:
       "He viewed the invoice twice, has paid three previous invoices within 48 hours, and has received no reminder in the last 24 hours. The agent predicts a short WhatsApp nudge now has the highest expected recovery.",
