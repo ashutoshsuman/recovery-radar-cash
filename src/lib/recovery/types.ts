@@ -13,6 +13,7 @@ export interface RecoveryCase {
   badges: { label: string; tone: BadgeTone }[];
   reason: string;
   recoverability: number;
+  urgencyWeight: number;
   headline: string;
   explanation: string;
   signals: string[];
@@ -40,13 +41,10 @@ export interface RecommendationInput {
 
 export interface AiRecommendation {
   recommendation_title: string;
-  recoverability_score: number;
   recommended_channel: Channel;
   recommended_timing: string;
   recommendation_reason: string;
   draft_message: string;
-  confidence: "high" | "medium" | "low";
-  learning_signal: string;
 }
 
 export interface RecoverySummary {

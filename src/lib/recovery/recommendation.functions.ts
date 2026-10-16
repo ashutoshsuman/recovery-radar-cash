@@ -14,6 +14,8 @@ const inputSchema = z.object({
   reminder_count_last_24h: z.number().int().nonnegative(),
   customer_timing_signal: z.string().max(200).nullable(),
   consent_verified: z.boolean(),
+  recoverability_score: z.number().int().min(0).max(100),
+  band: z.enum(["High", "Medium", "Low"]),
 });
 
 // "recovery-recommendation": returns AI decision or { ok: false } so the UI can fall back.
