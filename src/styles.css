@@ -170,3 +170,9 @@
 @utility surface {
   background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-xl); box-shadow: var(--shadow-card);
 }
+@layer base {
+  button:not(:disabled), a[href], [role="button"], summary, label[for] { cursor: pointer; }
+  button:focus-visible, a:focus-visible, [role="button"]:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--color-ring); outline-offset: 2px;
+  }
+}

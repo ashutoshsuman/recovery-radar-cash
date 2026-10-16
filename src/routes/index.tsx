@@ -24,7 +24,8 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const [active, setActive] = useState<RecoveryCase | null>(null);
-  const top = cases[0] ?? null;
+  const ranked = [...cases].sort((a, b) => b.recoverability - a.recoverability);
+  const top = ranked[0] ?? null;
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -34,8 +35,11 @@ function Index() {
         <main className="mx-auto max-w-5xl px-4 py-8 sm:px-8 sm:py-12">
           <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
-              <div className="eyebrow">Agent Studio · Recovery Radar</div>
-              <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="eyebrow">Agent Studio · Recovery Radar</div>
+                <span className="inline-flex h-5 items-center rounded-full bg-muted px-2 text-[10px] font-semibold text-muted-foreground">Demo data</span>
+              </div>
+              <h1 className="mt-3 text-3xl font-bold leading-[1.1] tracking-[-0.01em] [text-wrap:balance] text-foreground sm:text-4xl">
                 Recover revenue before it goes cold.
               </h1>
               <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
@@ -45,15 +49,9 @@ function Index() {
             <div className="flex shrink-0 gap-2">
               <button
                 onClick={() => toast("Agent settings", { description: "Review-first mode · max 2 nudges · consented contacts only" })}
-                className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted"
+                className="flex items-center gap-2 rounded-xl border border-border bg-transparent px-4 py-2.5 text-sm font-semibold text-foreground transition-colors hover:border-muted-foreground/40 hover:bg-muted"
               >
                 <Settings2 className="h-4 w-4" /> Agent settings
-              </button>
-              <button
-                onClick={() => setActive(top)}
-                className="rounded-xl bg-ink px-4 py-2.5 text-sm font-semibold text-ink-foreground hover:opacity-90"
-              >
-                Review top opportunity
               </button>
             </div>
           </header>
@@ -61,8 +59,8 @@ function Index() {
           <section className="surface mt-8 grid gap-6 p-6 sm:p-8 md:grid-cols-[1fr_auto] md:items-end">
             <div>
               <div className="text-5xl font-bold tracking-tight text-foreground sm:text-6xl">{formatINR(summary.opportunity)}</div>
-              <div className="mt-2 text-sm text-muted-foreground">high-confidence recovery opportunity</div>
-              <dl className="mt-6 grid grid-cols-3 gap-4 border-t border-border pt-5 sm:max-w-lg">
+              <div className="mt-2 text-sm text-muted-foreground">across {cases.length} recommended actions</div>
+              <dl className="mt-6 grid grid-cols-1 gap-3 border-t sm:grid-cols-3 sm:gap-4 border-border pt-5 sm:max-w-lg">
                 {[
                   [summary.outstanding, "outstanding"],
                   [String(summary.linksAtRisk), "links at risk"],
@@ -77,9 +75,9 @@ function Index() {
             </div>
             <button
               onClick={() => setActive(top)}
-              className="group flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-[15px] font-semibold text-primary-foreground shadow-card transition hover:opacity-90 active:scale-[0.98]"
+              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-primary md:w-auto px-6 py-3.5 text-[15px] font-semibold text-primary-foreground shadow-card transition hover:opacity-90 active:scale-[0.98]"
             >
-              Recover {formatINR(summary.opportunity)}
+              Review top opportunity
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </button>
           </section>
@@ -93,7 +91,7 @@ function Index() {
               <span className="text-xs text-muted-foreground">{cases.length} of {summary.linksAtRisk}</span>
             </div>
             <div className="divide-y divide-border">
-              {cases.map((c, i) => (
+              {ranked.map((c, i) => (
                 <CaseRow key={c.id} c={c} rank={i + 1} onOpen={() => setActive(c)} />
               ))}
             </div>

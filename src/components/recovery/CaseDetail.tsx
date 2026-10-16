@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import type { Channel, RecoveryCase, Timing } from "@/lib/recovery/types";
 import { formatINR } from "@/lib/recovery/mock-data";
-import { scoreColor } from "./CaseRow";
+import { scoreBand } from "@/lib/recovery/score";
 
 const channels: { id: Channel; label: string; sub: string; icon: typeof MessageCircle }[] = [
   { id: "whatsapp", label: "WhatsApp", sub: "Best response rate", icon: MessageCircle },
@@ -108,7 +108,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
   }, [c, fetchRec]);
 
   const view = c && {
-    score: ai?.recoverability_score ?? c.recoverability,
+    score: c.recoverability,
     headline: ai?.recommendation_title || c.headline,
     confidence: ai?.confidence,
     reason: ai?.recommendation_reason ?? c.explanation,
@@ -173,8 +173,8 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                           <div className="flex items-start justify-between gap-3">
                             <h3 className="text-lg font-bold leading-snug">{view.headline}</h3>
                             <div className="shrink-0 text-right">
-                              <div className="text-2xl font-bold leading-none">{view.score}%</div>
-                              <div className="mt-1 text-[10px] uppercase tracking-wider opacity-60">recoverable</div>
+                              <div className="text-lg font-bold leading-none">{scoreBand(view.score)}</div>
+                              <div className="mt-1 text-[10px] uppercase tracking-wider opacity-60">likelihood · {view.score}</div>
                               {view.confidence && <div className="mt-1.5 rounded-full bg-ink-foreground/10 px-2 py-0.5 text-[10px] font-semibold">{cap(view.confidence)} confidence</div>}
                             </div>
                           </div>
@@ -313,7 +313,7 @@ function SuccessState({ c, score, recChannel, learning, onBack, manual, channel,
   const chLabel = channels.find((x) => x.id === channel)?.label;
   const tLabel = timings.find((x) => x.id === timing)?.label;
   const audit = [
-    ["9:14 AM", `Agent recommended ${channels.find((x) => x.id === recChannel)?.label} · ${score}% recoverability`],
+    ["9:14 AM", `Agent recommended ${channels.find((x) => x.id === recChannel)?.label} · ${scoreBand(score)} likelihood (${score})`],
     ["9:14 AM", `Merchant ${edited ? "edited message and " : ""}approved ${chLabel} · ${tLabel}`],
     ["9:14 AM", manual ? "Follow-up task created (simulated)" : "Outreach simulated as sent"],
   ];

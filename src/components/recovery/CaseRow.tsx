@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import type { BadgeTone, RecoveryCase } from "@/lib/recovery/types";
 import { formatINR } from "@/lib/recovery/mock-data";
+import { bandText, scoreBand } from "@/lib/recovery/score";
 
 const toneClass: Record<BadgeTone, string> = {
   intent: "bg-success-soft text-success",
@@ -11,19 +12,16 @@ const toneClass: Record<BadgeTone, string> = {
 
 export function ReasonBadge({ label, tone }: { label: string; tone: BadgeTone }) {
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${toneClass[tone]}`}>{label}</span>
+    <span className={`inline-flex h-5 items-center whitespace-nowrap rounded-full px-2 text-[11px] font-semibold leading-none ${toneClass[tone]}`}>{label}</span>
   );
 }
 
-export function scoreColor(score: number) {
-  return score >= 80 ? "text-success" : score >= 70 ? "text-primary" : "text-warning";
-}
 
 export function CaseRow({ c, rank, onOpen }: { c: RecoveryCase; rank: number; onOpen: () => void }) {
   return (
     <button
       onClick={onOpen}
-      className={"group relative grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 text-left transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none sm:gap-4 sm:px-6 " + (rank === 1 ? "before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-primary" : "")}
+      className={"group relative grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 text-left cursor-pointer transition-colors hover:bg-muted focus-visible:bg-muted focus-visible:outline-none sm:gap-4 sm:px-6 " + (rank === 1 ? "before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-primary" : "")}
     >
       <span className={"grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-bold " + (rank === 1 ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground")}>
         {rank}
@@ -46,8 +44,8 @@ export function CaseRow({ c, rank, onOpen }: { c: RecoveryCase; rank: number; on
       </div>
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <div className="text-right">
-          <div className={`text-lg font-bold sm:text-xl ${scoreColor(c.recoverability)}`}>{c.recoverability}%</div>
-          <div className="text-[11px] text-muted-foreground">recoverable</div>
+          <div className={`text-sm font-bold sm:text-base ${bandText[scoreBand(c.recoverability)]}`}>{scoreBand(c.recoverability)}</div>
+          <div className="text-[11px] text-muted-foreground">likelihood · {c.recoverability}</div>
         </div>
         <ChevronRight className="hidden h-4 w-4 sm:block text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       </div>
