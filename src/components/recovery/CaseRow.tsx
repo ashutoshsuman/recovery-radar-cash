@@ -45,7 +45,7 @@ export function CaseRow({ c, rank, onOpen }: { c: RecoveryCase; rank: number; on
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         <div className="text-right">
           <div className={`text-sm font-bold sm:text-base ${bandText[scoreBand(c.recoverability)]}`}>{scoreBand(c.recoverability)}</div>
-          <div className="text-[11px] text-muted-foreground">likelihood · {c.recoverability}</div>
+          <ScoreTooltip className="justify-end text-[11px] text-muted-foreground">score {c.recoverability}</ScoreTooltip>
         </div>
         <ChevronRight className="hidden h-4 w-4 sm:block text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       </div>

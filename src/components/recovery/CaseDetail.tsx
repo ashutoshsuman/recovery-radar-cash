@@ -172,7 +172,7 @@ export function CaseDetail({ c, onClose }: { c: RecoveryCase | null; onClose: ()
                             <h3 className="text-lg font-bold leading-snug">{view.headline}</h3>
                             <div className="shrink-0 text-right">
                               <div className="text-lg font-bold leading-none">{scoreBand(view.score)}</div>
-                              <div className="mt-1 text-[10px] uppercase tracking-wider opacity-60">likelihood · {view.score}</div>
+                              <ScoreTooltip className="mt-1 justify-end text-[10px] uppercase tracking-wider opacity-60">score {view.score}</ScoreTooltip>
                             </div>
                           </div>
                           <div className="mt-4 text-[10px] font-bold uppercase tracking-[0.14em] opacity-60">Why this recommendation</div>
@@ -310,7 +310,7 @@ function SuccessState({ c, score, recChannel, onBack, manual, channel, timing, e
   const chLabel = channels.find((x) => x.id === channel)?.label;
   const tLabel = timings.find((x) => x.id === timing)?.label;
   const audit = [
-    ["9:14 AM", `Agent recommended ${channels.find((x) => x.id === recChannel)?.label} · ${scoreBand(score)} likelihood (${score})`],
+    ["9:14 AM", `Agent recommended ${channels.find((x) => x.id === recChannel)?.label} · ${scoreBand(score)} · score ${score}`],
     ["9:14 AM", `Merchant ${edited ? "edited message and " : ""}approved ${chLabel} · ${tLabel}`],
     ["9:14 AM", manual ? "Follow-up task created (simulated)" : "Outreach simulated as sent"],
   ];
