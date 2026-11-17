@@ -63,13 +63,16 @@ function Index() {
               <div className="mt-2 text-sm text-muted-foreground">across {cases.length} recommended actions</div>
               <dl className="mt-6 grid grid-cols-1 gap-3 border-t sm:grid-cols-3 sm:gap-4 border-border pt-5 sm:max-w-lg">
                 {[
-                  [summary.outstanding, "outstanding"],
-                  [String(summary.linksAtRisk), "links at risk"],
-                  [`${summary.winRate}%`, "agent win-rate*"],
-                ].map(([v, l]) => (
+                  [summary.outstanding, "outstanding", ""],
+                  [String(summary.linksAtRisk), "links at risk", ""],
+                  [`${summary.winRate}%`, "agent win-rate*", "*Illustrative, mock data."],
+                ].map(([v, l, note]) => (
                   <div key={l}>
                     <dt className="text-lg font-bold text-foreground sm:text-xl">{v}</dt>
-                    <dd className="text-xs text-muted-foreground">{l}</dd>
+                    <dd className="text-xs text-muted-foreground">
+                      {l}
+                      {note && <span className="ml-1 text-[10px] text-muted-foreground/80">{note}</span>}
+                    </dd>
                   </div>
                 ))}
               </dl>
@@ -105,9 +108,6 @@ function Index() {
               </span>
             ))}
           </div>
-          <p className="mt-6 text-xs italic text-muted-foreground">
-            *Prototype metric. Replace with controlled experiment data after launch.
-          </p>
         </main>
       </div>
       <CaseDetail c={active} onClose={() => setActive(null)} />
