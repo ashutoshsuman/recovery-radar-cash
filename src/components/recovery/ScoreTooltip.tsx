@@ -20,8 +20,10 @@ export function ScoreTooltip({ className = "", children }: { className?: string;
         <Tooltip.Portal>
           <Tooltip.Content
             side="top"
+            align="end"
             sideOffset={8}
-            className="z-[80] max-w-[16rem] rounded-lg bg-ink px-3 py-2 text-[11px] font-medium leading-snug text-ink-foreground shadow-pop animate-in fade-in-0 zoom-in-95"
+            collisionPadding={10}
+            className="z-[80] max-w-[15rem] rounded-lg bg-ink px-3 py-2 text-[11px] font-medium leading-snug text-ink-foreground shadow-pop animate-in fade-in-0 zoom-in-95"
           >
             {SCORE_NOTE}
             <Tooltip.Arrow className="fill-ink" />
