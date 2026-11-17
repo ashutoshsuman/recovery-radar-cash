@@ -108,9 +108,6 @@ function Index() {
               </span>
             ))}
           </div>
-          <p className="mt-6 text-xs italic text-muted-foreground">
-            *Prototype metric. Replace with controlled experiment data after launch.
-          </p>
         </main>
       </div>
       <CaseDetail c={active} onClose={() => setActive(null)} />

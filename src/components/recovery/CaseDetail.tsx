@@ -11,6 +11,7 @@ import {
 import type { Channel, RecoveryCase, Timing } from "@/lib/recovery/types";
 import { formatINR } from "@/lib/recovery/mock-data";
 import { scoreBand } from "@/lib/recovery/score";
+import { ScoreTooltip } from "@/components/recovery/ScoreTooltip";
 
 const channels: { id: Channel; label: string; sub: string; icon: typeof MessageCircle }[] = [
   { id: "whatsapp", label: "WhatsApp", sub: "Best response rate", icon: MessageCircle },

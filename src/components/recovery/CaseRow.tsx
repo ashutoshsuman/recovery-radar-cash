@@ -1,4 +1,5 @@
 import { ChevronRight } from "lucide-react";
+import { ScoreTooltip } from "@/components/recovery/ScoreTooltip";
 import type { BadgeTone, RecoveryCase } from "@/lib/recovery/types";
 import { formatINR } from "@/lib/recovery/mock-data";
 import { bandText, scoreBand } from "@/lib/recovery/score";
